@@ -1,18 +1,16 @@
-# STAGE01 - Build application and its dependencies
-FROM mcr.microsoft.com/dotnet/core/aspnet:3.1 AS build-env
+FROM mcr.microsoft.com/dotnet/core/sdk:3.1 AS build-env
 WORKDIR /app
-COPY ./src/LandingPage/*.csproj ./
+
+# Copiar csproj e restaurar dependencias
+COPY WebApp/*.csproj ./
+RUN dotnet restore
+
+# Build da aplicacao
 COPY . ./
-RUN dotnet restore 
+RUN dotnet publish -c Release -o out
 
-# STAGE02 - Publish the application
-FROM build-env AS publish
-RUN dotnet publish -c Release -o /app
-
-# STAGE03 - Create the final image
-FROM mcr.microsoft.com/dotnet/core/aspnet:3.1-aspnetcore-runtime
+# Build da imagem
+FROM mcr.microsoft.com/dotnet/core/aspnet:3.1
 WORKDIR /app
-LABEL Author="Gaurav Gahlot"
-LABEL Maintainer="quickdevnotes"
-COPY --from=publish /app .
-ENTRYPOINT ["dotnet", "WebApp.dll", "--server.urls", "http://*:80"]
+COPY --from=build-env /app/out .
+ENTRYPOINT ["dotnet", "WebApp.dll"]
